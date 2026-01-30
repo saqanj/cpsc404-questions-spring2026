@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CPSC 404 — Question Picker</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="picker.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -174,62 +175,8 @@
         const card = document.getElementById('card');
         const status = document.getElementById('status');
 
-        let allQuestions = [];   // full set for selected week
-        let remaining = [];      // not yet shown
-
-        // Friendly week labels from folder names
-        const WEEK_LABELS = {
-            'week02-chapter01': 'Week 2 — Ch 1: Making Inevitable Conflict Productive',
-            'week03-chapter02': 'Week 3 — Ch 2: Giving Good-Enough Answers',
-            'week04-chapter03': 'Week 4 — Ch 3: Creating Constructive Loyalty',
-            'week06-dual-reading': 'Week 6 — Ch 4 + ProducingOSS Ch 8',
-            'week07-chapter05-async': 'Week 7 — Ch 5: Winning the Prisoner\'s Dilemma',
-            'week08-dual-reading': 'Week 8 — Ch 6 + ProducingOSS Ch 6',
-            'week10-dual-reading': 'Week 10 — Ch 7 + ProducingOSS Ch 4',
-            'week11-chapter08': 'Week 11 — Ch 8: Your Boss Is Not Your Friend',
-            'week12-chapter09': 'Week 12 — Ch 9: Dealing with Special Cases',
-            'week13-chapter10': 'Week 13 — Ch 10: Managing Your Manager',
-        };
-
-        // Strip metadata lines (Student, Date, headings) and keep just the question content
-        function cleanBody(text) {
-            return text
-                .split('\n')
-                .filter(line => {
-                    const trimmed = line.trim();
-                    if (/^#{1,2}\s/.test(trimmed)) return false;
-                    if (/^\*\*(Student|Author)[:：]\*\*/i.test(trimmed)) return false;
-                    if (/^Student[:：]/i.test(trimmed)) return false;
-                    if (/^\*\*Date[:：]\*\*/i.test(trimmed)) return false;
-                    if (/^Date[:：]/i.test(trimmed)) return false;
-                    return true;
-                })
-                .join('\n')
-                .trim();
-        }
-
-        // Extract author name from various formats students used
-        function extractAuthor(filename, body) {
-            // **Student:** Name or **Author:** Name
-            const bold = body.match(/\*\*(Student|Author)[:：]\*\*\s*(.+)/i);
-            if (bold) return bold[2].trim();
-            // Student: Name (no bold)
-            const plain = body.match(/^Student[:：]\s*(.+)/im);
-            if (plain) return plain[1].trim();
-            // Fall back to filename
-            return filename
-                .replace('.md', '')
-                .replace(/[-_]/g, ' ')
-                .replace(/\b\w/g, c => c.toUpperCase());
-        }
-
-        // Get a friendly label for a week folder
-        function weekLabel(dirname) {
-            if (WEEK_LABELS[dirname]) return WEEK_LABELS[dirname];
-            return dirname
-                .replace(/-/g, ' ')
-                .replace(/\b\w/g, c => c.toUpperCase());
-        }
+        // Pool state (functions come from picker.js)
+        let pool = null;
 
         // Load the list of week folders from the repo
         async function loadWeeks() {
@@ -278,8 +225,7 @@
                 // Filter out empty submissions
                 const questions = fetched.filter(q => q.body.trim().length > 0);
 
-                allQuestions = questions;
-                remaining = [...questions];
+                pool = createPool(questions);
                 updateStatus();
                 pickBtn.disabled = false;
                 resetBtn.disabled = false;
@@ -290,7 +236,8 @@
         }
 
         function updateStatus() {
-            status.textContent = `${remaining.length} of ${allQuestions.length} remaining`;
+            if (!pool) { status.textContent = ''; return; }
+            status.textContent = `${pool.remaining} of ${pool.total} remaining`;
         }
 
         // Check if the card content overflows and show a scroll hint
@@ -318,25 +265,24 @@
         }
 
         function pickRandom() {
-            if (remaining.length === 0) {
+            if (!pool || pool.isEmpty) {
                 card.innerHTML = '<div class="done-message">All questions have been shown!<br>Click "Reset Pool" or press R to start over.</div>';
                 pickBtn.disabled = true;
                 updateStatus();
                 return;
             }
 
-            const index = Math.floor(Math.random() * remaining.length);
-            const question = remaining.splice(index, 1)[0];
+            const question = pool.pick();
             showQuestion(question);
             updateStatus();
 
-            if (remaining.length === 0) {
+            if (pool.isEmpty) {
                 pickBtn.disabled = true;
             }
         }
 
-        function resetPool() {
-            remaining = [...allQuestions];
+        function resetQuestionPool() {
+            if (pool) pool.reset();
             updateStatus();
             pickBtn.disabled = false;
             card.innerHTML = '<div class="placeholder">Pool reset — click "Pick a Question" or press Space</div>';
@@ -348,8 +294,7 @@
             if (week) {
                 loadQuestions(week);
             } else {
-                allQuestions = [];
-                remaining = [];
+                pool = null;
                 pickBtn.disabled = true;
                 resetBtn.disabled = true;
                 status.textContent = '';
@@ -370,7 +315,7 @@
                 pickRandom();
             } else if ((e.key === 'r' || e.key === 'R') && !resetBtn.disabled) {
                 e.preventDefault();
-                resetPool();
+                resetQuestionPool();
             }
         });
 
