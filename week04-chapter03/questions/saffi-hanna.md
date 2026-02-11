@@ -1,0 +1,1 @@
+The chapter argues loyalty must be built before a crisis, not during one. But with modern tech job tenure averaging 2-3 years and frequent manager turnover, is there realistically enough time to build constructive loyalty, or does this framework assume a workplace stability that no longer exists?
