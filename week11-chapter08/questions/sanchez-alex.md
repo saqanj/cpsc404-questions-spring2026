@@ -1,0 +1,4 @@
+## Question: HYBHY Chapter 10
+## Alex Sanchez
+
+As I read, I thought about how these models would play out in the real world, especially since MBT says people can act outside their preferences when needed. For example, if someone is intuitive but is working for someone who is a Guardian who expects step by step thinking and using checklists, is it more effective to adapt to their communication style or should managers adjust to different preferences? It also made me think of operant conditioning since Guardians seem to rely on checklists for instant satisfaction or almost reward like. In that sense, could their preference for structure be reinforced over time with this type of occurrence?
